@@ -1,0 +1,108 @@
+# Architektura i Setup: Automatyczne Pobieranie Statystyk Influencerskich (Stan na 2026)
+
+Niniejszy raport przedstawia kompleksową analizę możliwości automatycznego pobierania statystyk (wyświetlenia, zaangażowanie, demografia) z platform TikTok, Instagram, Facebook oraz YouTube do lokalnego skryptu Python. Celem jest stworzenie systemu, który pozwoli na regularne monitorowanie własnych kont (jako twórca) bez konieczności ręcznego kopiowania danych.
+
+## 1. Architektura Systemu
+
+Proponowana architektura opiera się na hybrydowym podejściu: oficjalne API są wykorzystywane tam, gdzie to możliwe (Meta, YouTube, podstawowe dane TikTok), natomiast dla brakujących danych (demografia TikTok) wprowadzono mechanizm automatyzacji przeglądarki jako rozwiązanie awaryjne (fallback).
+
+![Architektura Systemu](https://private-us-east-1.manuscdn.com/sessionFile/RsFcR7aTnk2BRQg0guWAZQ/sandbox/SI7OqpoleD9VDUPymQb9wk-images_1776649464847_na1fn_L2hvbWUvdWJ1bnR1L2FyY2hpdGVjdHVyZQ.png?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvUnNGY1I3YVRuazJCUlFnMGd1V0FaUS9zYW5kYm94L1NJN09xcG9sZUQ5VkRVUHltUWI5d2staW1hZ2VzXzE3NzY2NDk0NjQ4NDdfbmExZm5fTDJodmJXVXZkV0oxYm5SMUwyRnlZMmhwZEdWamRIVnlaUS5wbmciLCJDb25kaXRpb24iOnsiRGF0ZUxlc3NUaGFuIjp7IkFXUzpFcG9jaFRpbWUiOjE3OTg3NjE2MDB9fX1dfQ__&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=nx~O~WqiEiD4aHEzx9kNZANpfsu6ekjVW2jW-xh0pps4l8F3bqXXiO3DevI0GKsSq0qJEpg-l7t2yHjqHohPRQ5KiNwr6vuKnQrjRp1XpI4noK8csyWUX1dezqb0X3WoUC5Znx73Qk0mWgZ1IqkaYCCFhtY57ywldkWPvxFpEQL5eTJqjhFtW0kJj~ZlaPPgyZsjb20TwOyd-hebVDPpSjMo3agN2g2P7zh311KhAW4m9OTEjYY8hr6Cd3mUqHaV8M0hT79yiaq6cmpmaYI8TF7H4IW5nygBAwNImD58R4EDY3DtpQEKNfeZBWCjvxk9kzpBp8NHCTio5C6Q6jo1IQ__)
+
+Skrypt Python działa lokalnie, komunikując się z oficjalnymi endpointami poprzez zapytania HTTP (REST). Zgromadzone i znormalizowane dane trafiają do lokalnej bazy (np. SQLite) lub plików CSV. W przypadku TikToka, gdzie oficjalne API nie dostarcza pełnej demografii, uruchamiany jest Playwright w trybie "stealth", który korzystając z zachowanej sesji logowania, pobiera brakujące metryki bezpośrednio z webowego panelu analitycznego twórcy.
+
+## 2. Analiza Ekosystemu API Platform (2025-2026)
+
+### 2.1. Meta Graph API (Instagram & Facebook)
+
+Ekosystem Mety oferuje najbardziej dojrzałe, choć restrykcyjne API. Dla kont profesjonalnych (Business/Creator) połączonych ze stroną na Facebooku, dostępne są szczegółowe dane.
+
+**Możliwości:**
+Z poziomu Instagram Graph API (endpoint `/insights`) można pobrać pełne statystyki profilu (zasięg, wyświetlenia) oraz poszczególnych mediów (zdjęcia, Reels, Stories). Dostępna jest również pełna demografia odbiorców (wiek, płeć, miasto, kraj) [1].
+
+**Wymagania i Setup:**
+1. Konto na Instagramie musi być typu "Professional" i powiązane ze stroną na Facebooku.
+2. Należy utworzyć aplikację w Meta for Developers i skonfigurować logowanie Facebook Login.
+3. Wymagane uprawnienia (scopes): `instagram_basic`, `instagram_manage_insights`, `pages_show_list`, `pages_read_engagement`.
+4. Wygenerowanie tzw. *Long-Lived Access Token* (ważny 60 dni). Skrypt musi automatycznie odświeżać ten token przed jego wygaśnięciem za pomocą dedykowanego endpointu [2].
+5. **Ważne:** Dla własnego konta aplikacja może pozostać w trybie "Development". Nie trzeba przechodzić rygorystycznego procesu App Review, o ile logujesz się kontem, które ma rolę administratora w aplikacji [3].
+
+### 2.2. YouTube Data API v3 & YouTube Analytics API
+
+Google rozdziela swoje API na dwa główne produkty. YouTube Data API służy do pobierania podstawowych, publicznych metryk (liczba subskrybentów, wyświetlenia wideo), natomiast YouTube Analytics API daje dostęp do głębokich danych analitycznych.
+
+**Możliwości:**
+YouTube Analytics API pozwala na generowanie raportów (endpoint `reports.query`), które zawierają szczegółowe dane o czasie oglądania, zaangażowaniu oraz demografii (wymiary: `ageGroup`, `gender`, `country`) [4].
+
+**Wymagania i Setup:**
+1. Konfiguracja projektu w Google Cloud Console i włączenie obu API.
+2. Utworzenie ekranu zgody OAuth (OAuth Consent Screen) i wygenerowanie poświadczeń klienta (Client ID).
+3. **Kluczowy problem z 2025/2026 roku:** Jeśli aplikacja jest w trybie "Testing" dla konta zewnętrznego (np. zwykłego Gmaila), token odświeżania (Refresh Token) wygasa po 7 dniach, co psuje automatyzację [5].
+4. **Rozwiązanie:** Należy zmienić status aplikacji na "Production". Ponieważ skrypt potrzebuje tylko uprawnień "read-only" (`yt-analytics.readonly`), Google nie wymaga skomplikowanej weryfikacji aplikacji [6]. Dzięki temu uzyskasz permanentny Refresh Token.
+
+### 2.3. TikTok API
+
+TikTok przeszedł znaczące zmiany w swoim ekosystemie deweloperskim, wprowadzając bardziej ustrukturyzowane, ale wciąż ograniczone API.
+
+**Możliwości:**
+TikTok Display API pozwala na pobranie podstawowych informacji o profilu (liczba followersów, polubień) oraz listy opublikowanych wideo wraz z ich podstawowymi statystykami (wyświetlenia, komentarze, udostępnienia) [7]. 
+
+**Brakujące dane:**
+Niestety, na ten moment oficjalne API dostępne dla twórców nie zwraca danych demograficznych (wiek, płeć) ani szczegółowych metryk zaangażowania z poziomu wideo (retencja). Dostęp do tych danych mają jedynie certyfikowani partnerzy biznesowi (Marketing API) lub badacze akademiccy (Research API) [8].
+
+**Wymagania i Setup:**
+1. Rejestracja na portalu TikTok for Developers.
+2. Utworzenie aplikacji i użycie funkcji "Login Kit" z uprawnieniami `user.info.basic`, `user.info.stats`, `video.list`.
+3. Podobnie jak w przypadku Mety, aplikacja generuje Access Token i Refresh Token, które skrypt musi regularnie odnawiać.
+
+## 3. Fallback Plan dla TikToka: Automatyzacja Przeglądarki
+
+Ponieważ oficjalne API TikToka nie dostarcza danych demograficznych, jedynym sposobem na ich zautomatyzowane pozyskanie dla własnego konta jest scraping panelu analitycznego (TikTok Creator Center).
+
+**Rekomendowane narzędzie:** Playwright (Python)
+W 2026 roku standardowy Selenium często zawodzi przy nowoczesnych zabezpieczeniach anty-botowych. Playwright w połączeniu z wtyczką `playwright-stealth` stanowi najlepsze rozwiązanie [9].
+
+**Strategia wdrożenia:**
+1. **Persistent Context:** Playwright pozwala na zapisanie stanu przeglądarki (ciasteczka, tokeny sesji) w lokalnym katalogu [10]. Należy uruchomić skrypt raz w trybie widocznym (headful), zalogować się ręcznie na TikToka, a następnie zapisać kontekst.
+2. **Kolejne uruchomienia:** Skrypt uruchamia się w tle, ładując zapisany kontekst. Dzięki temu TikTok widzi "zalogowanego użytkownika" i nie prosi o hasło czy 2FA.
+3. **Nawigacja:** Skrypt przechodzi pod adres `https://www.tiktok.com/analytics`, czeka na wyrenderowanie się elementów JavaScript (np. wykresów demograficznych) i ekstrahuje dane z drzewa DOM.
+
+**Aspekty etyczne i bezpieczeństwa:**
+Pobieranie danych z własnego konta (do których masz prawo) niesie znacznie mniejsze ryzyko niż masowy scraping cudzych profili. Mimo to, należy unikać agresywnego odpytywania (wystarczy raz w tygodniu) i stosować opóźnienia imitujące zachowanie człowieka, aby uniknąć blokady sesji [11].
+
+## 4. Agregatory 3rd Party (Modash, Phyllo, itp.)
+
+Na rynku istnieje wiele gotowych rozwiązań (agregatorów API), które ujednolicają dane ze wszystkich platform. Zostały one przeanalizowane pod kątem przydatności dla pojedynczego twórcy.
+
+| Platforma | Model Działania | Dostępność Demografii TikTok | Cennik (2025/2026) | Werdykt dla Twórcy |
+|-----------|-----------------|------------------------------|-------------------|--------------------|
+| **Phyllo** | OAuth (logowanie twórcy) | Tak (dane first-party) | Niestandardowy (B2B) | Zbyt drogie, celowane w aplikacje Fintech/Creator Economy |
+| **Modash** | Scraping publiczny | Tylko estymacje | Od ~$1,350/msc | Całkowicie poza budżetem, model dla dużych agencji |
+| **Influencer Hero** | API operacyjne | Tylko estymacje | Od $649/msc | Model B2B dla e-commerce |
+| **Influencers.club**| Wzbogacanie danych | Tylko estymacje | Od $208/msc | Najtańsze z płatnych, ale wciąż nieopłacalne dla 1 konta |
+
+**Wniosek:**
+Wszystkie narzędzia 3rd party są projektowane w modelu B2B dla agencji i platform SaaS zarządzających tysiącami twórców. Dla pojedynczego influencera koszty (od 200 do nawet kilku tysięcy dolarów miesięcznie) są całkowicie nieuzasadnione [12]. Ponadto, większość z nich (poza Phyllo) i tak opiera demografię TikToka na estymacjach z publicznych profili, a nie na prawdziwych danych z analityki. Własny skrypt Python z oficjalnymi API to jedyna sensowna finansowo ścieżka.
+
+## 5. Podsumowanie i Rekomendacje
+
+1. **Meta (FB/IG) i YouTube:** Używaj wyłącznie oficjalnych API. Dostarczają 100% potrzebnych danych, w tym demografię. Zadbaj o prawidłowe zarządzanie cyklem życia tokenów (odświeżanie *Long-Lived Token* dla Mety oraz publikacja aplikacji w trybie "Production" dla Google, aby uniknąć 7-dniowego wygasania).
+2. **TikTok:** Używaj oficjalnego Display API do podstawowych metryk wideo.
+3. **Brakująca demografia TikTok:** Zaimplementuj skrypt w Playwright z zachowanym kontekstem logowania, który raz w tygodniu "wejdzie" na Twój panel analityczny i zeskrapuje statystyki płci i wieku.
+4. **Agregatory płatne:** Zignoruj. Są zbyt drogie i niedopasowane do potrzeb pojedynczego twórcy monitorującego własne konto.
+
+Taka architektura zapewni Ci niezależność, brak kosztów subskrypcyjnych (API są darmowe w ramach standardowych limitów) oraz pełną kontrolę nad zgromadzonymi danymi.
+
+---
+## Bibliografia
+[1] Meta for Developers, *Instagram Graph API - Insights*, 2026.
+[2] Meta for Developers, *Long-Lived Access Tokens*, 2026.
+[3] Meta for Developers, *App Review Requirements*, 2026.
+[4] Google for Developers, *YouTube Analytics API: Dimensions*, 2026.
+[5] Napkyn, *Why Your YouTube API Refresh Token Keeps Expiring and How to Fix It*, Feb 2026.
+[6] Google Cloud Console, *OAuth Consent Screen Configuration*, 2026.
+[7] TikTok for Developers, *Display API Documentation*, 2026.
+[8] Scrapfly, *Comprehensive Guide to TikTok API*, 2025.
+[9] Scrapfly, *Playwright Stealth: Bypass Bot Detection*, Apr 2026.
+[10] Playwright Documentation, *Authentication & Persistent Context*, 2026.
+[11] Bright Data, *Ethical Web Scraping Best Practices*, 2026.
+[12] Influencer Hero, *Best Influencer Marketing API Providers*, Mar 2026.
