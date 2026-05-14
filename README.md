@@ -17,6 +17,7 @@ pamiec projektu po zamknieciu sesji.
 | `06_SESSION_LOG_2026-04-20.md` | Skondensowany log duzej sesji stabilizacyjnej | Opcjonalnie, gdy liczy sie "dlaczego" |
 | `07_SESSION_LOG_2026-04-21.md` | Skondensowany log kolejnej fali zmian (metadata, ETAP 0, docs drift) | Opcjonalnie, gdy liczy sie "dlaczego" |
 | `08_SESSION_LOG_2026-05-13.md` | Snapshot stanu pod migracje na nowy laptop | Opcjonalnie, gdy liczy sie "dlaczego" |
+| `11_SESSION_LOG_2026-05-14.md` | Potwierdzenie publikacji repo doradczego na GitHubie | Opcjonalnie, gdy liczy sie "dlaczego" |
 | `09_NEW_LAPTOP_BOOTSTRAP.md` | Konkretna instrukcja odtworzenia setupu na nowej maszynie | Dla Ciebie i dla AI |
 | `10_PROMPT_DLA_CLAUDE_MIGRACJA_I_CLEANUP.md` | Gotowy super-prompt dla Claude do sprzatania repo wykonawczych | Do przeklejenia 1:1 |
 | `README.md` | Ten plik | Dla Ciebie, nie dla AI |
@@ -45,6 +46,7 @@ Opcjonalnie dorzuc:
 - `06_SESSION_LOG_2026-04-20.md`
 - `07_SESSION_LOG_2026-04-21.md`
 - `08_SESSION_LOG_2026-05-13.md`
+- `11_SESSION_LOG_2026-05-14.md`
 
 ### Opcja C: Drugie Claude jako sparing partner
 

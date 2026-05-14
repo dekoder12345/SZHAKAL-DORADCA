@@ -378,6 +378,8 @@ Later local wave (verify exact commits before citing publicly):
 - `Scenariusze/CLAUDE.md` rewrite/catch-up
 - `Scenariusze` later advanced with verify/simplify integration, IG/Tematy ingest, hook generation,
   editor handoff packaging, and category-scoped runs
+- the advisory pack itself was later initialized as git repo and published to:
+  `dekoder12345/SZHAKAL-DORADCA`
 
 Sibling repos also received matching portability/bootstrap/hook fixes during this wave.
 
@@ -385,5 +387,6 @@ Sibling repos also received matching portability/bootstrap/hook fixes during thi
 
 For the exact Apr 21 follow-up reasoning, read `07_SESSION_LOG_2026-04-21.md`.
 For the migration-era May snapshot, read `08_SESSION_LOG_2026-05-13.md`.
+For the advisory publish event, read `11_SESSION_LOG_2026-05-14.md`.
 
 End of working memory.
